@@ -167,7 +167,7 @@ int Orbit::interpolateWGS84Orbit(double tintp, double opos[3], double ovel[3]) {
     if (idx < 0) idx = 0;
     if (idx > (nVectors-4)) idx = nVectors - 4;
     for (int i=0; i<4; i++) getStateVector(idx+i, t[i], pos[i], vel[i]);
-    
+   
     orbitHermite(pos, vel, t, tintp, opos, ovel);
 
     // Not sure why, but original code does the interpolation regardless if the time requested is
@@ -197,7 +197,7 @@ void isceLib::orbitHermite(double x[4][3], double v[4][3], double t[4], double t
         }
         h[i] = product;
         sum = 0.;
-        for (int j=0; i<4; j++) {
+        for (int j=0; j<4; j++) {
             product = 1.;
             for (int k=0; k<4; k++) {
                 if ((i != k) && (j != k)) product *= (time - t[k]) / (t[i] - t[k]);
