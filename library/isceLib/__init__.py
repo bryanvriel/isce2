@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from .isceLib import geo2rdr, rdr2geo
+
 def Ellipsoid(a=None, e2=None):
     from .isceLib import PyEllipsoid
     return PyEllipsoid(a,e2)
@@ -31,3 +33,4 @@ def Poly2d(azimuthOrder=None, rangeOrder=None, azimuthMean=0., rangeMean=0., azi
 def Orbit(basis=None, nVectors=None):
     from .isceLib import PyOrbit
     return PyOrbit(basis,nVectors)
+

@@ -220,6 +220,7 @@ cdef class PyOrbit:
         cdef double _b[3]
         cdef double _c[3]
         cdef int ret
+        cdef int i
         for i in range(3):
             _b[i] = b[i]
             _c[i] = c[i]

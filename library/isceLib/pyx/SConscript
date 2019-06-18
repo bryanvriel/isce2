@@ -18,7 +18,8 @@ pyx_files=['Ellipsoid.pyx',
            'Pegtrans.pyx',
            'Poly1d.pyx',
            'Poly2d.pyx',
-           'Position.pyx']
+           'Position.pyx',
+           'Geometry.pyx']
 
 a = enviscelib.Command(os.path.join(install_pyx,'isceLib.cpp'), 'isceLib.pyx', 'cython3 $SOURCE -o $TARGET --cplus') # Cythonize the isceLib.pyx file to the install dir
 b = enviscelib.SharedObject(target=os.path.join(install_pyx,'isceLib.o'), source=os.path.join(install_pyx,'isceLib.cpp')) # Build the Cythonized isceLib.pyx
