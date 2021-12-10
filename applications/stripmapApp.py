@@ -35,10 +35,8 @@
 
 from __future__ import print_function
 import time
-import os
 import sys
-import logging
-import logging.config
+from isce import logging
 
 import isce
 import isceobj
@@ -50,11 +48,6 @@ import isceobj.StripmapProc as StripmapProc
 from isceobj.Scene.Frame import FrameMixin
 from isceobj.Util.decorators import use_api
 
-logging.config.fileConfig(
-    os.path.join(os.environ['ISCE_HOME'], 'defaults', 'logging',
-        'logging.conf')
-)
-
 logger = logging.getLogger('isce.insar')
 
 
@@ -64,24 +57,24 @@ SENSOR_NAME = Application.Parameter(
         default = None,
         type = str,
         mandatory = False,
-        doc = 'Sensor name for both master and slave')
+        doc = 'Sensor name for both reference and secondary')
 
 
-MASTER_SENSOR_NAME = Application.Parameter(
-        'masterSensorName',
-        public_name='master sensor name',
+REFERENCE_SENSOR_NAME = Application.Parameter(
+        'referenceSensorName',
+        public_name='reference sensor name',
         default = None,
         type=str,
         mandatory = True,
-        doc = "Master sensor name if mixing sensors")
+        doc = "Reference sensor name if mixing sensors")
 
-SLAVE_SENSOR_NAME = Application.Parameter(
-        'slaveSensorName',
-        public_name='slave sensor name',
+SECONDARY_SENSOR_NAME = Application.Parameter(
+        'secondarySensorName',
+        public_name='secondary sensor name',
         default = None,
         type=str,
         mandatory = True,
-        doc = "Slave sensor name if mixing sensors")
+        doc = "Secondary sensor name if mixing sensors")
 
 
 CORRELATION_METHOD = Application.Parameter(
@@ -96,17 +89,17 @@ CORRELATION_METHOD = Application.Parameter(
       phase_gradient=phase gradient"""
         )
                                            )
-MASTER_DOPPLER_METHOD = Application.Parameter(
-    'masterDopplerMethod',
-    public_name='master doppler method',
+REFERENCE_DOPPLER_METHOD = Application.Parameter(
+    'referenceDopplerMethod',
+    public_name='reference doppler method',
     default=None,
     type=str, mandatory=False,
     doc= "Doppler calculation method.Choices: 'useDOPIQ', 'useDefault'."
 )
 
-SLAVE_DOPPLER_METHOD = Application.Parameter(
-    'slaveDopplerMethod',
-    public_name='slave doppler method',
+SECONDARY_DOPPLER_METHOD = Application.Parameter(
+    'secondaryDopplerMethod',
+    public_name='secondary doppler method',
     default=None,
     type=str, mandatory=False,
     doc="Doppler calculation method. Choices: 'useDOPIQ','useDefault'.")
@@ -242,14 +235,20 @@ FILTER_STRENGTH = Application.Parameter('filterStrength',
                                       mandatory=False,
                                       doc='')
 
-
-DO_RUBBERSHEETING = Application.Parameter('doRubbersheeting',
-                                      public_name='do rubbersheeting',
+############################################## Modified by V.Brancato 10.07.2019
+DO_RUBBERSHEETINGAZIMUTH = Application.Parameter('doRubbersheetingAzimuth', 
+                                      public_name='do rubbersheetingAzimuth',
                                       default=False,
                                       type=bool,
                                       mandatory=False,
                                       doc='')
-
+DO_RUBBERSHEETINGRANGE = Application.Parameter('doRubbersheetingRange', 
+                                      public_name='do rubbersheetingRange',
+                                      default=False,
+                                      type=bool,
+                                      mandatory=False,
+                                      doc='')
+#################################################################################
 RUBBERSHEET_SNR_THRESHOLD = Application.Parameter('rubberSheetSNRThreshold',
                                       public_name='rubber sheet SNR Threshold',
                                       default = 5.0,
@@ -259,7 +258,7 @@ RUBBERSHEET_SNR_THRESHOLD = Application.Parameter('rubberSheetSNRThreshold',
 
 RUBBERSHEET_FILTER_SIZE = Application.Parameter('rubberSheetFilterSize',
                                       public_name='rubber sheet filter size',
-                                      default = 8,
+                                      default = 9,
                                       type = int,
                                       mandatory = False,
                                       doc = '')
@@ -385,6 +384,13 @@ RENDERER = Application.Parameter(
     )
                                         )
 
+DISPERSIVE_FILTER_FILLING_METHOD = Application.Parameter('dispersive_filling_method',
+                                            public_name = 'dispersive filter filling method',
+                                            default='nearest_neighbour',
+                                            type=str,
+                                            mandatory=False,
+                                            doc='method to fill the holes left by masking the ionospheric phase estimate')
+					    
 DISPERSIVE_FILTER_KERNEL_XSIZE = Application.Parameter('kernel_x_size',
                                       public_name='dispersive filter kernel x-size',
                                       default=800,
@@ -440,27 +446,26 @@ DISPERSIVE_FILTER_COHERENCE_THRESHOLD = Application.Parameter('dispersive_filter
                                       type=float,
                                       mandatory=False,
                                       doc='Coherence threshold to generate a mask file which gets used in the iterative filtering of the dispersive and non-disperive phase')
-
 #Facility declarations
 
-MASTER = Application.Facility(
-    'master',
-    public_name='Master',
+REFERENCE = Application.Facility(
+    'reference',
+    public_name='Reference',
     module='isceobj.StripmapProc.Sensor',
     factory='createSensor',
-    args=(SENSOR_NAME, MASTER_SENSOR_NAME, 'master'),
+    args=(SENSOR_NAME, REFERENCE_SENSOR_NAME, 'reference'),
     mandatory=False,
-    doc="Master raw data component"
+    doc="Reference raw data component"
                               )
 
-SLAVE = Application.Facility(
-    'slave',
-    public_name='Slave',
+SECONDARY = Application.Facility(
+    'secondary',
+    public_name='Secondary',
     module='isceobj.StripmapProc.Sensor',
     factory='createSensor',
-    args=(SENSOR_NAME, SLAVE_SENSOR_NAME,'slave'),
+    args=(SENSOR_NAME, SECONDARY_SENSOR_NAME,'secondary'),
     mandatory=False,
-    doc="Slave raw data component"
+    doc="Secondary raw data component"
                              )
 
 DEM_STITCHER = Application.Facility(
@@ -511,12 +516,12 @@ class _RoiBase(Application, FrameMixin):
     family = 'insar'
     ## Define Class parameters in this list
     parameter_list = (SENSOR_NAME,
-                      MASTER_SENSOR_NAME,
-                      SLAVE_SENSOR_NAME,
+                      REFERENCE_SENSOR_NAME,
+                      SECONDARY_SENSOR_NAME,
                       FILTER_STRENGTH,
                       CORRELATION_METHOD,
-                      MASTER_DOPPLER_METHOD,
-                      SLAVE_DOPPLER_METHOD,
+                      REFERENCE_DOPPLER_METHOD,
+                      SECONDARY_DOPPLER_METHOD,
                       UNWRAPPER_NAME,
                       DO_UNWRAP,
                       DO_UNWRAP_2STAGE,
@@ -533,7 +538,8 @@ class _RoiBase(Application, FrameMixin):
                       GEOCODE_BOX,
                       REGION_OF_INTEREST,
                       HEIGHT_RANGE,
-                      DO_RUBBERSHEETING,
+                      DO_RUBBERSHEETINGRANGE, #Modified by V. Brancato 10.07.2019
+                      DO_RUBBERSHEETINGAZIMUTH,  #Modified by V. Brancato 10.07.2019
                       RUBBERSHEET_SNR_THRESHOLD,
                       RUBBERSHEET_FILTER_SIZE,
                       DO_DENSEOFFSETS,
@@ -548,6 +554,7 @@ class _RoiBase(Application, FrameMixin):
                       PICKLE_LOAD_DIR,
                       RENDERER,
                       DO_DISPERSIVE,
+                      DISPERSIVE_FILTER_FILLING_METHOD,
                       DISPERSIVE_FILTER_KERNEL_XSIZE,
                       DISPERSIVE_FILTER_KERNEL_YSIZE,
                       DISPERSIVE_FILTER_KERNEL_SIGMA_X,
@@ -557,8 +564,8 @@ class _RoiBase(Application, FrameMixin):
                       DISPERSIVE_FILTER_MASK_TYPE,
                       DISPERSIVE_FILTER_COHERENCE_THRESHOLD)
 
-    facility_list = (MASTER,
-                     SLAVE,
+    facility_list = (REFERENCE,
+                     SECONDARY,
                      DEM_STITCHER,
                      RUN_UNWRAPPER,
                      RUN_UNWRAP_2STAGE,
@@ -722,9 +729,10 @@ class _RoiBase(Application, FrameMixin):
         self.runTopo = StripmapProc.createTopo(self)
         self.runGeo2rdr = StripmapProc.createGeo2rdr(self)
         self.runResampleSlc = StripmapProc.createResampleSlc(self)
-        self.runRefineSlaveTiming = StripmapProc.createRefineSlaveTiming(self)
+        self.runRefineSecondaryTiming = StripmapProc.createRefineSecondaryTiming(self)
         self.runDenseOffsets = StripmapProc.createDenseOffsets(self)
-        self.runRubbersheet = StripmapProc.createRubbersheet(self)
+        self.runRubbersheetRange = StripmapProc.createRubbersheetRange(self) #Modified by V. Brancato 10.07.2019
+        self.runRubbersheetAzimuth =StripmapProc.createRubbersheetAzimuth(self) #Modified by V. Brancato 10.07.2019
         self.runResampleSubbandSlc = StripmapProc.createResampleSubbandSlc(self)
         self.runInterferogram = StripmapProc.createInterferogram(self)
         self.runFilter = StripmapProc.createFilter(self)
@@ -744,7 +752,7 @@ class _RoiBase(Application, FrameMixin):
         self.step('preprocess',
                   func=self.runPreprocessor,
                   doc=(
-                """Preprocess the master and slave sensor data to raw images"""
+                """Preprocess the reference and secondary sensor data to raw images"""
                 )
                   )
 
@@ -768,14 +776,17 @@ class _RoiBase(Application, FrameMixin):
         self.step('coarse_resample', func=self.runResampleSlc,
                     args=('coarse',))
 
-        self.step('misregistration', func=self.runRefineSlaveTiming)
+        self.step('misregistration', func=self.runRefineSecondaryTiming)
 
         self.step('refined_resample', func=self.runResampleSlc,
                     args=('refined',))
 
         self.step('dense_offsets', func=self.runDenseOffsets)
-
-        self.step('rubber_sheet', func=self.runRubbersheet)
+######################################################################## Modified by V. Brancato 10.07.2019
+        self.step('rubber_sheet_range', func=self.runRubbersheetRange)
+	
+        self.step('rubber_sheet_azimuth',func=self.runRubbersheetAzimuth)
+#########################################################################
 
         self.step('fine_resample', func=self.runResampleSlc,
                     args=('fine',))
@@ -845,17 +856,21 @@ class _RoiBase(Application, FrameMixin):
         self.runResampleSlc('coarse')
 
         # refine geometry offsets using offsets computed by cross correlation
-        self.runRefineSlaveTiming()
+        self.runRefineSecondaryTiming()
 
         # resampling using refined offsets
         self.runResampleSlc('refined')
 
         # run dense offsets
         self.runDenseOffsets()
-
-        # adding the azimuth offsets computed from cross correlation to geometry offsets
-        self.runRubbersheet()
-
+	
+############ Modified by V. Brancato 10.07.2019
+        # adding the azimuth offsets computed from cross correlation to geometry offsets 
+        self.runRubbersheetAzimuth()
+       
+        # adding the range offsets computed from cross correlation to geometry offsets 
+        self.runRubbersheetRange()
+####################################################################################
         # resampling using rubbersheeted offsets
         # which include geometry + constant range + constant azimuth
         # + dense azimuth offsets
@@ -951,7 +966,7 @@ class Insar(_RoiBase):
         self.runResampleSlc()
         #self.runResamp_only()
 
-        self.runRefineSlaveTiming()
+        self.runRefineSecondaryTiming()
 
         #self.insar.topoIntImage=self.insar.resampOnlyImage
         #self.runTopo()

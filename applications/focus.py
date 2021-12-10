@@ -30,12 +30,8 @@
 
 
 
-import os
 import math
-import logging
-import logging.config
-logging.config.fileConfig(os.path.join(os.environ['ISCE_HOME'], 'defaults',
-    'logging', 'logging.conf'))
+from isce import logging
 import isceobj
 from iscesys.Component.FactoryInit import FactoryInit
 from iscesys.DateTimeUtil.DateTimeUtil import DateTimeUtil as DTU
@@ -319,9 +315,9 @@ def main():
     fi.defaultInitModule = 'InitFromXmlFile'
     fi.initComponentFromFile()
 
-    master = fi.getComponent('Master')
+    reference = fi.getComponent('Reference')
 
-    focuser = Focuser(rawObj=master)
+    focuser = Focuser(rawObj=reference)
     focuser.focuser()
 
 if __name__ == "__main__":

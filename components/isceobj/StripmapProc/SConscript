@@ -45,11 +45,11 @@ project = 'StripmapProc'
 install = os.path.join(envisceobj['PRJ_SCONS_INSTALL'],package,project)
 
 listFiles = ['StripmapProc.py',  'runPreprocessor.py', 'runSplitSpectrum.py',
-    'runCoherence.py' , 'runRefineSlaveTiming.py',   'runTopo.py',
+    'runCoherence.py' , 'runRefineSecondaryTiming.py',   'runTopo.py',
     'Factories.py' ,   'runDenseOffsets.py',   'runResampleSlc.py' , 'runUnwrapGrass.py',
     '__init__.py' , 'runDispersive.py' , 'runResampleSubbandSlc.py',  'runUnwrapIcu.py',
     'runFilter.py' ,  'runROI.py'  , 'runUnwrapSnaphu.py', 'runCrop.py',
-    'runGeo2rdr.py', 'runRubbersheet.py', '__StripmapProc.py' ,  'runInterferogram.py',
+    'runGeo2rdr.py', 'runRubbersheetRange.py', 'runRubbersheetAzimuth.py', '__StripmapProc.py' ,  'runInterferogram.py',
     'runVerifyDEM.py', 'runGeocode.py', 'Sensor.py'
 ]
 

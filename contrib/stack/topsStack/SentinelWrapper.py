@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os, sys
-import importlib
+from importlib import util as importlibutil
 import argparse
 import configparser
 
@@ -158,7 +158,7 @@ class ConfigParser:
 
     # If any of the following calls raises an exception,
     # there's a problem we can't handle -- let the caller handle it.
-    spec = importlib.util.find_spec(name)
+    spec = importlibutil.find_spec(name)
 
     try:
       return spec.loader.load_module()
@@ -194,10 +194,10 @@ def main(start = None, end = None):
   config = 'sentinel.ini' if configFile is None else configFile
 
   common = ['outputDir', \
-            'masterDir', \
-            'slaveDir', \
-            'masterOrbit', \
-            'slaveOrbit', \
+            'referenceDir', \
+            'secondaryDir', \
+            'referenceOrbit', \
+            'secondaryOrbit', \
             'dem', \
             'swathnum']
 
@@ -205,7 +205,7 @@ def main(start = None, end = None):
              'topo',\
              'geo2rdr',\
              'estimateOffsets_withDEM',\
-             'derampSlave',\
+             'derampSecondary',\
              'resamp_withDEM',\
              'overlap_withDEM',\
              'estimateAzimuthMisreg',\

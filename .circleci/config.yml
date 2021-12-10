@@ -1,5 +1,59 @@
 version: 2.1
 jobs:
+  test-cmake:
+    docker:
+        - image: hysds/pge-base:latest
+          user: root
+    steps:
+      - checkout:
+          path: /root/project/src
+
+      - run:
+          name: Install development tools
+          command: |
+            set -ex
+            pwd
+            yum update -y
+            yum groupinstall -y "development tools"
+
+      - run:
+          name: Install ISCE requirements
+          command: |
+            set -ex
+            pwd
+            mkdir config build install
+            . /opt/conda/bin/activate root
+            conda install -y cython gdal h5py libgdal pytest numpy fftw scipy scons hdf4 hdf5 netcdf4 libgcc libstdcxx-ng cmake astropy
+            yum install -y x11-devel motif-devel jq gcc-gfortran
+
+      - run:
+          name: Build and Install ISCE
+          command: |
+            set -ex
+            cd /root/project/src
+            . /opt/conda/bin/activate root
+            mkdir build
+            cd build
+            INSTALLPATH=/opt/conda
+            MODPATH=$(python3 -c "import site; print(site.getsitepackages()[0])")
+            # convert to relative path
+            MODPATH=$(realpath --relative-to=$INSTALLPATH $MODPATH)
+            cmake .. -DCMAKE_INSTALL_PREFIX=$INSTALLPATH -DPYTHON_MODULE_DIR=$MODPATH
+            make install VERBOSE=y
+
+      - run:
+          name: Test ISCE installation
+          command: |
+            set -ex
+            cd /root/project/src/build
+            . /opt/conda/bin/activate root
+            ctest
+            ISCE2DIR=$(python3 -c "import os, isce2; print(os.path.dirname(isce2.__file__))" | tail -n 1)
+            export PATH=$ISCE2DIR/applications:$PATH
+            topsApp.py --help --steps
+            stripmapApp.py --help --steps
+            python3 -c "import isce"
+
   test:
     docker:
         - image: hysds/pge-base:latest
@@ -23,7 +77,7 @@ jobs:
             pwd
             mkdir config build install
             . /opt/conda/bin/activate root
-            conda install --yes cython gdal h5py libgdal pytest numpy fftw scipy basemap scons opencv hdf4 hdf5 netcdf4 libgcc libstdcxx-ng cmake
+            conda install --yes cython gdal h5py libgdal pytest numpy fftw scipy scons hdf4 hdf5 netcdf4 libgcc libstdcxx-ng cmake astropy
             yum install -y uuid-devel x11-devel motif-devel jq gcc-gfortran
             ln -s /opt/conda/bin/cython /opt/conda/bin/cython3
             cd /opt/conda/lib
@@ -72,7 +126,7 @@ jobs:
               set -ex
               pwd
               . /opt/conda/bin/activate root
-              export ISCE_HOME=/root/project/install/isce
+              ISCE_HOME=/root/project/install/isce
               export PATH="$ISCE_HOME/bin:$ISCE_HOME/applications:/opt/conda/bin:$PATH"
               export PYTHONPATH="/root/project/install:$PYTHONPATH"
               export LD_LIBRARY_PATH="/opt/conda/lib:$LD_LIBRARY_PATH"
@@ -89,7 +143,7 @@ jobs:
           name: Install dependencies
           command: |
             apk add --no-cache \
-              python-dev py-pip bash pigz build-base libffi-dev openssl-dev
+              python3-dev py3-pip bash pigz build-base libffi-dev openssl-dev
             pip install \
               docker-compose awscli
       - run:
@@ -98,6 +152,32 @@ jobs:
             mkdir images
             SHA1=$(echo $CIRCLE_SHA1 | cut -c1-7)
             echo "export TAG=$SHA1" >> images/env.sh
+            source images/env.sh
+            docker build --rm --force-rm -t isce/isce2:$TAG -f docker/Dockerfile .
+            cd images
+            docker save isce/isce2:$TAG > isce2.tar
+      - persist_to_workspace:
+          root: images
+          paths:
+            - "*"
+  build-release:
+    docker:
+      - image: docker:stable-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --no-cache \
+              python3-dev py3-pip bash pigz build-base libffi-dev openssl-dev
+            pip install \
+              docker-compose awscli
+      - run:
+          name: Build docker image
+          command: |
+            mkdir images
+            echo "export TAG=$CIRCLE_TAG" >> images/env.sh
             source images/env.sh
             docker build --rm --force-rm -t isce/isce2:$TAG -f docker/Dockerfile .
             cd images
@@ -116,7 +196,7 @@ jobs:
           name: Install dependencies
           command: |
             apk add --no-cache \
-              python-dev py-pip bash pigz build-base libffi-dev openssl-dev
+              python3-dev py3-pip bash pigz build-base libffi-dev openssl-dev
             pip install \
               docker-compose awscli
       - run:
@@ -160,18 +240,36 @@ workflows:
   test:
     jobs:
       - test
+      - test-cmake
+      - build
   build-deploy:
     jobs:
       - build:
           filters:
             branches:
-              only: master
+              only: main
       - deploy:
           requires:
             - build
           filters:
             branches:
-              only: master
+              only: main
+  build-deploy-release:
+    jobs:
+      - build-release:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy:
+          requires:
+            - build-release
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
   weekly:
     triggers:
       - schedule:
@@ -179,15 +277,15 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - build-periodically:
           filters:
             branches:
-              only: master
+              only: main
       - deploy:
           requires:
             - build-periodically
           filters:
             branches:
-              only: master
+              only: main

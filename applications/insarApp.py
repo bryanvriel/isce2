@@ -34,8 +34,7 @@ from __future__ import print_function
 import time
 import os
 import sys
-import logging
-import logging.config
+from isce import logging
 
 import isce
 import isceobj
@@ -45,11 +44,6 @@ from iscesys.Compatibility import Compatibility
 from iscesys.Component.Configurable import SELF
 import isceobj.InsarProc as InsarProc
 from isceobj.Scene.Frame import FrameMixin
-
-logging.config.fileConfig(
-    os.path.join(os.environ['ISCE_HOME'], 'defaults', 'logging',
-        'logging.conf')
-)
 
 logger = logging.getLogger('isce.insar')
 
@@ -88,7 +82,7 @@ PEG_SELECT = Application.Parameter(
     public_name='peg select',
     default='average',
     mandatory=False,
-    doc='Peg selection method. Can be master, slave or average'
+    doc='Peg selection method. Can be reference, secondary or average'
                                 )
 
 PEG_LAT = Application.Parameter(
@@ -162,7 +156,7 @@ USE_DOP = Application.Parameter(
     default="average",
     type=float,
     mandatory=False,
-    doc="Choose whether to use master, slave, or average Doppler for processing."
+    doc="Choose whether to use reference, secondary, or average Doppler for processing."
 )
 
 UNWRAPPER_NAME = Application.Parameter(
@@ -420,44 +414,44 @@ RENDERER = Application.Parameter(
                                         )
 
 #Facility declarations
-MASTER = Application.Facility(
-    'master',
-    public_name='Master',
+REFERENCE = Application.Facility(
+    'reference',
+    public_name='Reference',
     module='isceobj.Sensor',
     factory='createSensor',
-    args=(SENSOR_NAME, 'master'),
+    args=(SENSOR_NAME, 'reference'),
     mandatory=True,
-    doc="Master raw data component"
+    doc="Reference raw data component"
                               )
 
-SLAVE = Application.Facility(
-    'slave',
-    public_name='Slave',
+SECONDARY = Application.Facility(
+    'secondary',
+    public_name='Secondary',
     module='isceobj.Sensor',
     factory='createSensor',
-    args=(SENSOR_NAME,'slave'),
+    args=(SENSOR_NAME,'secondary'),
     mandatory=True,
-    doc="Slave raw data component"
+    doc="Secondary raw data component"
                              )
 
-MASTERDOP = Application.Facility(
-    'masterdop',
-    public_name='Master Doppler',
+REFERENCEDOP = Application.Facility(
+    'referencedop',
+    public_name='Reference Doppler',
     module='isceobj.Doppler',
     factory='createDoppler',
     args=(DOPPLER_METHOD,),
     mandatory=False,
-    doc="Master Doppler calculation method"
+    doc="Reference Doppler calculation method"
                                  )
 
-SLAVEDOP = Application.Facility(
-    'slavedop',
-    public_name='Slave Doppler',
+SECONDARYDOP = Application.Facility(
+    'secondarydop',
+    public_name='Secondary Doppler',
     module='isceobj.Doppler',
     factory='createDoppler',
     args=(DOPPLER_METHOD,),
     mandatory=False,
-    doc="Master Doppler calculation method"
+    doc="Reference Doppler calculation method"
                                 )
 
 DEM = Application.Facility(
@@ -597,10 +591,10 @@ class _InsarBase(Application, FrameMixin):
                       UNWRAPPER_2STAGE_NAME,
                       SOLVER_2STAGE)
 
-    facility_list = (MASTER,
-                     SLAVE,
-                     MASTERDOP,
-                     SLAVEDOP,
+    facility_list = (REFERENCE,
+                     SECONDARY,
+                     REFERENCEDOP,
+                     SECONDARYDOP,
                      DEM,
                      DEM_STITCHER,
                      RUN_ESTIMATE_HEIGHTS,
@@ -848,9 +842,9 @@ class _InsarBase(Application, FrameMixin):
     from isceobj.Util.decorators import use_api
     @use_api
     def verifyDEM(self):
-        masterF = self._insar.masterFrame
-        slaveF = self._insar.slaveFrame
-        info = self.extractInfo(masterF, slaveF)
+        referenceF = self._insar.referenceFrame
+        secondaryF = self._insar.secondaryFrame
+        info = self.extractInfo(referenceF, secondaryF)
         #if an image has been specified, then no need to create one
         if not self.dem.filename:
             self.createDem(info)
@@ -968,7 +962,7 @@ class _InsarBase(Application, FrameMixin):
         self.step('preprocess',
                   func=self.runPreprocessor,
                   doc=(
-                """Preprocess the master and slave sensor data to raw images"""
+                """Preprocess the reference and secondary sensor data to raw images"""
                 )
                   )
 
