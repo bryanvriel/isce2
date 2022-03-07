@@ -11,12 +11,6 @@ import datetime
 import time
 import numpy as np
 
-# suppress matplotlib DEBUG message
-from matplotlib.path import Path as Path
-import logging
-mpl_logger = logging.getLogger('matplotlib')
-mpl_logger.setLevel(logging.WARNING)
-
 import isce
 import isceobj
 from isceobj.Sensor.TOPS.Sentinel1 import Sentinel1
@@ -94,84 +88,108 @@ def createParser():
     parser = argparse.ArgumentParser( description='Preparing the directory structure and config files for stack processing of Sentinel data')
 
     parser.add_argument('-H','--hh', nargs=0, action=customArgparseAction,
-                help='Display detailed help information.')
+                        help='Display detailed help information.')
 
     parser.add_argument('-s', '--slc_directory', dest='slc_dirname', type=str, required=True,
-            help='Directory with all Sentinel SLCs')
+                        help='Directory with all Sentinel SLCs')
 
     parser.add_argument('-o', '--orbit_directory', dest='orbit_dirname', type=str, required=True,
-            help='Directory with all orbits')
+                        help='Directory with all orbits')
 
     parser.add_argument('-a', '--aux_directory', dest='aux_dirname', type=str, required=True,
-            help='Directory with all aux files')
+                        help='Directory with all aux files')
 
     parser.add_argument('-w', '--working_directory', dest='work_dir', type=str, default='./',
-            help='Working directory ')
+                        help='Working directory (default: %(default)s).')
 
     parser.add_argument('-d', '--dem', dest='dem', type=str, required=True,
-            help='Directory with the DEM')
+                        help='Directory with the DEM')
 
     parser.add_argument('-m', '--reference_date', dest='reference_date', type=str, default=None,
-            help='Directory with reference acquisition')
+                        help='Directory with reference acquisition')
 
     parser.add_argument('-c','--num_connections', dest='num_connections', type=str, default = '1',
-            help='number of interferograms between each date and subsequent dates. -- Default : 1')
-
-    parser.add_argument('-O','--num_overlap_connections', dest='num_overlap_connections', type=str, default = '3',
-                help='number of overlap interferograms between each date and subsequent dates used for NESD computation (for azimuth offsets misregistration). -- Default : 3')
+                        help='number of interferograms between each date and subsequent dates (default: %(default)s).')
 
     parser.add_argument('-n', '--swath_num', dest='swath_num', type=str, default='1 2 3',
-            help="A list of swaths to be processed. -- Default : '1 2 3'")
+                        help="A list of swaths to be processed. -- Default : '1 2 3'")
 
-    parser.add_argument('-b', '--bbox', dest='bbox', type=str, default=None, help="Lat/Lon Bounding SNWE. -- Example : '19 20 -99.5 -98.5' -- Default : common overlap between stack")
+    parser.add_argument('-b', '--bbox', dest='bbox', type=str, default=None,
+                        help="Lat/Lon Bounding SNWE. -- Example : '19 20 -99.5 -98.5' -- Default : common overlap between stack")
 
-    parser.add_argument('-t', '--text_cmd', dest='text_cmd', type=str, default=''
-       , help="text command to be added to the beginning of each line of the run files. -- Example : 'source ~/.bash_profile;' -- Default : ''")
+    parser.add_argument('-t', '--text_cmd', dest='text_cmd', type=str, default='', 
+                        help="text command to be added to the beginning of each line of the run files (default: '%(default)s'). "
+                             "Example : 'source ~/.bash_profile;'")
 
-    parser.add_argument('-x', '--exclude_dates', dest='exclude_dates', type=str, default=None
-       , help="List of the dates to be excluded for processing. -- Example : '20141007,20141031' -- Default: No dates excluded")
+    parser.add_argument('-x', '--exclude_dates', dest='exclude_dates', type=str, default=None, 
+                        help="List of the dates to be excluded for processing. -- Example : '20141007,20141031' (default: %(default)s).")
 
-    parser.add_argument('-i', '--include_dates', dest='include_dates', type=str, default=None
-       , help="List of the dates to be included for processing. -- Example : '20141007,20141031' -- Default: No dates excluded")
+    parser.add_argument('-i', '--include_dates', dest='include_dates', type=str, default=None, 
+                        help="List of the dates to be included for processing. -- Example : '20141007,20141031' (default: %(default)s).")
 
-    parser.add_argument('-z', '--azimuth_looks', dest='azimuthLooks', type=str, default='3'
-       , help='Number of looks in azimuth for interferogram multi-looking. -- Default : 3')
+    parser.add_argument('--start_date', dest='startDate', type=str, default=None, 
+                        help='Start date for stack processing. Acquisitions before start date are ignored. '
+                             'format should be YYYY-MM-DD e.g., 2015-01-23')
 
-    parser.add_argument('-r', '--range_looks', dest='rangeLooks', type=str, default='9'
-       , help='Number of looks in range for interferogram multi-looking. -- Default : 9')
+    parser.add_argument('--stop_date', dest='stopDate', type=str, default=None, 
+                        help='Stop date for stack processing. Acquisitions after stop date are ignored. '
+                             'format should be YYYY-MM-DD e.g., 2017-02-26')
 
-    parser.add_argument('-f', '--filter_strength', dest='filtStrength', type=str, default='0.5'
-       , help='Filter strength for interferogram filtering. -- Default : 0.5')
+    parser.add_argument('-z', '--azimuth_looks', dest='azimuthLooks', type=str, default='3', 
+                        help='Number of looks in azimuth for interferogram multi-looking (default: %(default)s).')
 
-    parser.add_argument('-e', '--esd_coherence_threshold', dest='esdCoherenceThreshold', type=str, default='0.85'
-           , help='Coherence threshold for estimating azimuth misregistration using enhanced spectral diversity. -- Default : 0.85')
+    parser.add_argument('-r', '--range_looks', dest='rangeLooks', type=str, default='9', 
+                        help='Number of looks in range for interferogram multi-looking (default: %(default)s).')
 
-    parser.add_argument('--snr_misreg_threshold', dest='snrThreshold', type=str, default='10'
-               , help='SNR threshold for estimating range misregistration using cross correlation. -- Default : 10')
+    parser.add_argument('-f', '--filter_strength', dest='filtStrength', type=str, default='0.5', 
+                        help='Filter strength for interferogram filtering (default: %(default)s).')
 
-    parser.add_argument('-u', '--unw_method', dest='unwMethod', type=str, default='snaphu'
-       , help='Unwrapping method (icu or snaphu). -- Default : snaphu')
+    parser.add_argument('--snr_misreg_threshold', dest='snrThreshold', type=str, default='10', 
+                        help='SNR threshold for estimating range misregistration using cross correlation (default: %(default)s).')
 
-    parser.add_argument('-p', '--polarization', dest='polarization', type=str, default='vv'
-       , help='SAR data polarization -- Default : vv')
+    parser.add_argument('-p', '--polarization', dest='polarization', type=str, default='vv', 
+                        help='SAR data polarization (default: %(default)s).')
 
-    parser.add_argument('-C', '--coregistration', dest='coregistration', type=str, default='NESD'
-           , help='Coregistration options: a) geometry b) NESD -- Default : NESD')
+    parser.add_argument('-C', '--coregistration', dest='coregistration', type=str, default='NESD', choices=['geometry', 'NESD'],
+                        help='Coregistration options (default: %(default)s).')
 
-    parser.add_argument('-W', '--workflow', dest='workflow', type=str, default='interferogram'
-       , help='The InSAR processing workflow : (interferogram, offset, slc, correlation) -- Default : interferogram')
+    parser.add_argument('-O','--num_overlap_connections', dest='num_overlap_connections', type=str, default = '3',
+                        help='number of overlap interferograms between each date and subsequent dates used for NESD computation '
+                             '(for azimuth offsets misregistration) (default: %(default)s).')
 
-    parser.add_argument('--start_date', dest='startDate', type=str, default=None
-       , help='Start date for stack processing. Acquisitions before start date are ignored. format should be YYYY-MM-DD e.g., 2015-01-23')
+    parser.add_argument('-e', '--esd_coherence_threshold', dest='esdCoherenceThreshold', type=str, default='0.85', 
+                        help='Coherence threshold for estimating azimuth misregistration using enhanced spectral diversity (default: %(default)s).')
 
-    parser.add_argument('--stop_date', dest='stopDate', type=str, default=None
-       , help='Stop date for stack processing. Acquisitions after stop date are ignored. format should be YYYY-MM-DD e.g., 2017-02-26')
+    parser.add_argument('-W', '--workflow', dest='workflow', type=str, default='interferogram',
+                        choices=['slc', 'correlation', 'interferogram', 'offset'],
+                        help='The InSAR processing workflow (default: %(default)s).')
+
+    parser.add_argument('-V', '--virtual_merge', dest='virtualMerge', type=str, default=None, choices=['True', 'False'],
+                        help='Use virtual files for the merged SLCs and geometry files.\n'
+                             'Default: True  for correlation / interferogram workflow\n'
+                             '         False for slc / offset workflow')
 
     parser.add_argument('-useGPU', '--useGPU', dest='useGPU',action='store_true', default=False,
-        help='Allow App to use GPU when available')
+                        help='Allow App to use GPU when available')
+
+    parser.add_argument('--num_proc', '--num_process', dest='numProcess', type=int, default=1,
+                        help='number of tasks running in parallel in each run file (default: %(default)s).')
+
+    parser.add_argument('--num_proc4topo', '--num_process4topo', dest='numProcess4topo', type=int, default=1,
+                        help='number of parallel processes (for topo only) (default: %(default)s).')
+
+    parser.add_argument('-u', '--unw_method', dest='unwMethod', type=str, default='snaphu', choices=['icu', 'snaphu'],
+                        help='Unwrapping method (default: %(default)s).')
 
     parser.add_argument('-rmFilter', '--rmFilter', dest='rmFilter', action='store_true', default=False,
                         help='Make an extra unwrap file in which filtering effect is removed')
+
+    parser.add_argument('--param_ion', dest='param_ion', type=str, default=None, 
+                        help='ionosphere estimation parameter file. if provided, will do ionosphere estimation.')
+
+    parser.add_argument('--num_connections_ion', dest='num_connections_ion', type=str, default = '3',
+                        help='number of interferograms between each date and subsequent dates for ionosphere estimation (default: %(default)s).')
+
 
     return parser
 
@@ -185,8 +203,23 @@ def cmdLineParse(iargs = None):
     inps.work_dir = os.path.abspath(inps.work_dir)
     inps.dem = os.path.abspath(inps.dem)
 
+    if any(i in iargs for i in ['--num_proc', '--num_process']) and all(
+            i not in iargs for i in ['--num_proc4topo', '--num_process4topo']):
+        inps.numProcess4topo = inps.numProcess
+
     return inps
 
+
+def generate_geopolygon(bbox):
+    """generate shapely Polygon"""
+    from shapely.geometry import Point, Polygon
+    
+    # convert pnts to shapely polygon format
+    # the order of pnts is conter-clockwise, starting from the lower ldft corner
+    # the order for Point is lon,lat
+    points = [Point(bbox[i][0], bbox[i][1]) for i in range(4)]
+
+    return Polygon([(p.coords.xy[0][0], p.coords.xy[1][0]) for p in points])
 
 ####################################
 def get_dates(inps):
@@ -216,6 +249,8 @@ def get_dates(inps):
 
     else:
         SAFE_files = glob.glob(os.path.join(inps.slc_dirname,'S1*_IW_SLC*zip')) # changed to zip file by Minyan Zhong
+        if SAFE_files == []:
+            SAFE_files = glob.glob(os.path.join(inps.slc_dirname,'S1*_IW_SLC*SAFE'))
 
     if len(SAFE_files) == 0:
         raise Exception('No SAFE file found')
@@ -229,7 +264,7 @@ def get_dates(inps):
     if inps.startDate is not None:
         stackStartDate = datetime.datetime(*time.strptime(inps.startDate, "%Y-%m-%d")[0:6])
     else:
-        #if startDate is None let's fix it to first JPL's staellite lunch date :)
+        #if startDate is None let's fix it to first JPL's satellite lunch date :)
         stackStartDate = datetime.datetime(*time.strptime("1958-01-31", "%Y-%m-%d")[0:6])
 
     if inps.stopDate is not None:
@@ -243,7 +278,8 @@ def get_dates(inps):
     f = open('SAFE_files.txt','w')
     safe_count=0
     safe_dict={}
-    bbox_poly = [[bbox[0],bbox[2]],[bbox[0],bbox[3]],[bbox[1],bbox[3]],[bbox[1],bbox[2]]]
+    bbox_poly = np.array([[bbox[2],bbox[0]],[bbox[3],bbox[0]],[bbox[3],bbox[1]],[bbox[2],bbox[1]]])
+
     for safe in SAFE_files:
         safeObj=sentinelSLC(safe)
         safeObj.get_dates()
@@ -260,45 +296,22 @@ def get_dates(inps):
             reject_SAFE=True
             pnts = safeObj.getkmlQUAD(safe)
 
-            # looping over the corners, keep the SAF is one of the corners is within the BBOX
-            lats = []
-            lons = []
+            # process pnts to use generate_geopolygon function
+            pnts_bbox = np.empty((4,2))
+            count = 0
             for pnt in pnts:
-                lon = float(pnt.split(',')[0])
-                lat = float(pnt.split(',')[1])
+                pnts_bbox[count, 0] = float(pnt.split(',')[0]) # longitude
+                pnts_bbox[count, 1] = float(pnt.split(',')[1]) # latitude
+                count += 1
+            pnts_polygon = generate_geopolygon(pnts_bbox)
+            bbox_polygon = generate_geopolygon(bbox_poly)
 
-                # keep track of all the corners to see of the product is larger than the bbox
-                lats.append(lat)
-                lons.append(lon)
-
-
-
-
-#                bbox = SNWE
-#                polygon = bbox[0] bbox[2]       SW
-#                          bbox[0] bbox[3]       SE
-#                          bbox[1] bbox[3]       NE
-#                          bbox[1] bbox[2]       NW
-
-                poly = Path(bbox_poly)
-                point = (lat,lon)
-                in_bbox = poly.contains_point(point)
-
-
-                # product corner falls within BBOX (SNWE)
-                if in_bbox:
-                    reject_SAFE=False
-
-
-            # If the product is till being rejected, check if the BBOX corners fall within the frame
-            if reject_SAFE:
-                for point in bbox_poly:
-                    frame = [[a,b] for a,b in zip(lats,lons)]
-                    poly = Path(frame)
-                    in_frame = poly.contains_point(point)
-                    if in_frame:
-                        reject_SAFE=False
-
+            # judge whether these two polygon intersect with each other
+            overlap_flag = pnts_polygon.intersects(bbox_polygon)
+            if overlap_flag:
+                reject_SAFE = False
+            else:
+                reject_SAFE = True
 
         if not reject_SAFE:
             if safeObj.date  not in safe_dict.keys() and safeObj.date  not in excludeList:
@@ -433,6 +446,158 @@ def selectNeighborPairs(dateList, num_connections, updateStack=False):  # should
     return pairs
 
 
+def selectNeighborPairsIonosphere(safe_dict, num_connections):
+    '''
+    safe_dict: returned by def get_dates(inps):
+    num_connetions: number of subsequent dates to pair up with a date
+
+    This routine first groups the Dates. Dates of same starting ranges is put in a group.
+    Pairs within a same group are returned in pairs_same_starting_ranges
+    Pairs connecting different groups are returned in pairs_diff_starting_ranges
+    '''
+
+    #get starting ranges
+    for date in safe_dict:
+        safe_dict[date].get_starting_ranges()
+
+    #get sorted dataList
+    dateList = [key for key in safe_dict.keys()]
+    dateList.sort()
+    ndate = len(dateList)
+
+    #starting ranges sorted by date
+    starting_ranges = [safe_dict[date].startingRanges for date in dateList]
+
+    #get unique starting ranges sorted by date
+    starting_ranges_unique = []
+    for i in range(ndate):
+        if starting_ranges[i] not in starting_ranges_unique:
+            starting_ranges_unique.append(starting_ranges[i])
+    ndate_unique = len(starting_ranges_unique)
+ 
+    #put dates of same starting ranges in a list
+    #result is a 2-D list, each D is sorted by date
+    starting_ranges_unique_dates = [[] for i in range(ndate_unique)]
+    for k in range(ndate_unique):
+        for i in range(ndate):
+            if starting_ranges_unique[k] == safe_dict[dateList[i]].startingRanges:
+                starting_ranges_unique_dates[k].append(dateList[i])
+    #print(starting_ranges_unique_dates)
+
+    if num_connections == 'all':
+        num_connections = ndate - 1
+    else:
+        num_connections = int(num_connections)
+
+    #1. form all possible pairs, to be used in 3
+    pairs_same_starting_ranges_0 = []
+    pairs_diff_starting_ranges_0 = []
+    for i in range(ndate-1):
+        for j in range(i+1, i+num_connections+1):
+            if j >= ndate:
+                continue
+            same_starting_ranges = False
+            for k in range(ndate_unique):
+                if dateList[i] in starting_ranges_unique_dates[k] and dateList[j] in starting_ranges_unique_dates[k]:
+                    same_starting_ranges = True
+                    break
+            if same_starting_ranges == True:
+                pairs_same_starting_ranges_0.append((dateList[i],dateList[j]))
+            else:
+                pairs_diff_starting_ranges_0.append((dateList[i],dateList[j]))
+
+    #2. form pairs of same starting ranges
+    pairs_same_starting_ranges = []
+    for k in range(ndate_unique):
+        ndate_unique_k = len(starting_ranges_unique_dates[k])
+        for i in range(ndate_unique_k):
+            for j in range(i+1, i+num_connections+1):
+                if j >= ndate_unique_k:
+                    continue
+                pairs_same_starting_ranges.append((starting_ranges_unique_dates[k][i],starting_ranges_unique_dates[k][j]))
+
+    #3. select pairs of diff starting ranges formed in 1 to connect the different starting ranges
+    pairs_diff_starting_ranges = []
+    for k in range(ndate_unique-1):
+        cnt = 0
+        for pair in pairs_diff_starting_ranges_0:
+            if (pair[0] in starting_ranges_unique_dates[k] and pair[1] in starting_ranges_unique_dates[k+1]) or \
+               (pair[1] in starting_ranges_unique_dates[k] and pair[0] in starting_ranges_unique_dates[k+1]):
+               pairs_diff_starting_ranges.append(pair)
+            cnt += 1
+            if cnt >= num_connections:
+                break
+
+    return pairs_same_starting_ranges, pairs_diff_starting_ranges
+
+
+def excludeExistingPairsIonosphere(pairs_same_starting_ranges, pairs_diff_starting_ranges, work_dir):
+    '''
+    This routine searches for existing pairs for ionosphere estimation and exclude them from
+    pairs_same_starting_ranges and pairs_diff_starting_ranges.
+    '''
+
+    if os.path.isdir(os.path.join(work_dir, 'ion')):
+        print('previous ionosphere estimation directory found')
+        print('exclude already processed pairs for ionosphere estimation')
+
+        pairs = [os.path.basename(p) for p in glob.glob(os.path.join(work_dir, 'ion', '*')) if os.path.isdir(p)]
+        pairs.sort()
+        pairs = [tuple(p.split('_')) for p in pairs]
+
+        pairs_same_starting_ranges_update = [p for p in pairs_same_starting_ranges if p not in pairs]
+        pairs_diff_starting_ranges_update = [p for p in pairs_diff_starting_ranges if p not in pairs]
+    else:
+        pairs_same_starting_ranges_update = pairs_same_starting_ranges
+        pairs_diff_starting_ranges_update = pairs_diff_starting_ranges
+
+    return pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update
+
+
+def getDatesIonosphere(pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update):
+    '''
+    This routine gets all dates associated with ionosphere estimation from
+    pairs_same_starting_ranges_update and pairs_diff_starting_ranges_update
+    '''
+
+    dateListIon = []
+    for pairs in (pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update):
+        for p in pairs:
+            if p[0] not in dateListIon:
+                dateListIon.append(p[0])
+            if p[1] not in dateListIon:
+                dateListIon.append(p[1])
+
+    dateListIon.sort()
+
+    return dateListIon
+
+
+def checkCurrentStatusIonosphere(inps):
+
+    #can run get_dates multiples times anywhere. it is only associated with inps parameters and safe files, not others
+    acquisitionDates, stackReferenceDate, secondaryDates, safe_dict = get_dates(inps)
+
+    pairs_same_starting_ranges, pairs_diff_starting_ranges = selectNeighborPairsIonosphere(safe_dict, inps.num_connections_ion)
+    pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update = excludeExistingPairsIonosphere(pairs_same_starting_ranges, pairs_diff_starting_ranges, inps.work_dir)
+    dateListIon = getDatesIonosphere(pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update)
+
+    #report pairs of different swath starting ranges.
+    pdiff = 'ionosphere phase estimation pairs with different swath starting ranges\n'
+    for p in pairs_diff_starting_ranges:
+        pdiff += '{}_{}\n'.format(p[0], p[1])
+
+    pdiff += '\nionosphere phase estimation pairs with different platforms\n'
+    for p in pairs_same_starting_ranges+pairs_diff_starting_ranges:
+        if safe_dict[p[0]].platform != safe_dict[p[1]].platform:
+            pdiff += '{}_{}\n'.format(p[0], p[1])
+
+    with open('pairs_diff_starting_ranges.txt', 'w') as f:
+        f.write(pdiff)
+
+    return dateListIon, pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update, safe_dict
+
+
 ########################################
 # Below are few workflow examples.
 
@@ -515,7 +680,7 @@ def slcStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_di
     if mergeSLC:
         i+=1
         runObj = run()
-        runObj.configure(inps, 'run_{:02d}_merge'.format(i))
+        runObj.configure(inps, 'run_{:02d}_merge_reference_secondary_slc'.format(i))
         runObj.mergeReference(stackReferenceDate, virtual = 'False')
         runObj.mergeSecondarySLC(secondaryDates, virtual = 'False')
         runObj.finalize()
@@ -531,15 +696,16 @@ def slcStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_di
 
 def correlationStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack):
 
-    #############################
     i = slcStack(inps, acquisitionDates,stackReferenceDate, secondaryDates, safe_dict, updateStack)
 
+    # default value of virtual_merge
+    virtual_merge = 'True' if not inps.virtualMerge else inps.virtualMerge
 
     i+=1
     runObj = run()
     runObj.configure(inps, 'run_{:02d}_merge_reference_secondary_slc'.format(i))
-    runObj.mergeReference(stackReferenceDate, virtual = 'True')
-    runObj.mergeSecondarySLC(secondaryDates, virtual = 'True')
+    runObj.mergeReference(stackReferenceDate, virtual = virtual_merge)
+    runObj.mergeSecondarySLC(secondaryDates, virtual = virtual_merge)
     runObj.finalize()
 
     i+=1
@@ -554,16 +720,21 @@ def correlationStack(inps, acquisitionDates, stackReferenceDate, secondaryDates,
     runObj.filter_coherence(pairs)
     runObj.finalize()
 
+    return i
+
 
 def interferogramStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack):
 
     i = slcStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, updateStack)
 
+    # default value of virtual_merge
+    virtual_merge = 'True' if not inps.virtualMerge else inps.virtualMerge
+
     i+=1
     runObj = run()
     runObj.configure(inps, 'run_{:02d}_merge_reference_secondary_slc'.format(i))
-    runObj.mergeReference(stackReferenceDate, virtual = 'True')
-    runObj.mergeSecondarySLC(secondaryDates, virtual = 'True')
+    runObj.mergeReference(stackReferenceDate, virtual = virtual_merge)
+    runObj.mergeSecondarySLC(secondaryDates, virtual = virtual_merge)
     runObj.finalize()
 
     i+=1
@@ -590,16 +761,21 @@ def interferogramStack(inps, acquisitionDates, stackReferenceDate, secondaryDate
     runObj.unwrap(pairs)
     runObj.finalize()
 
+    return i
+
 
 def offsetStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack):
 
     i = slcStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, updateStack)
 
+    # default value of virtual_merge
+    virtual_merge = 'False' if not inps.virtualMerge else inps.virtualMerge
+
     i+=1
     runObj = run()
     runObj.configure(inps, 'run_{:02d}_merge_reference_secondary_slc'.format(i))
-    runObj.mergeReference(stackReferenceDate, virtual = 'False')
-    runObj.mergeSecondarySLC(secondaryDates, virtual = 'False')
+    runObj.mergeReference(stackReferenceDate, virtual = virtual_merge)
+    runObj.mergeSecondarySLC(secondaryDates, virtual = virtual_merge)
     runObj.finalize()
 
     i+=1
@@ -607,6 +783,61 @@ def offsetStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe
     runObj.configure(inps, 'run_{:02d}_dense_offsets'.format(i))
     runObj.denseOffsets(pairs)
     runObj.finalize()
+
+    return i
+
+
+def ionosphereStack(inps, dateListIon, stackReferenceDate, pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update, safe_dict, i):
+
+    i+=1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_subband_and_resamp'.format(i))
+    runObj.subband_and_resamp(dateListIon, stackReferenceDate)
+    runObj.finalize()
+
+    i+=1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_generateIgram_ion'.format(i))
+    runObj.generateIgram_ion(pairs_same_starting_ranges_update+pairs_diff_starting_ranges_update, stackReferenceDate)
+    runObj.finalize()
+
+    i += 1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_mergeBurstsIon'.format(i))
+    runObj.mergeBurstsIon(pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update)
+    runObj.finalize()
+
+    i+=1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_unwrap_ion'.format(i))
+    runObj.unwrap_ion(pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update)
+    runObj.finalize()
+
+    i+=1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_look_ion'.format(i))
+    runObj.look_ion(pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update)
+    runObj.finalize()
+
+    i+=1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_computeIon'.format(i))
+    runObj.computeIon(pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update, safe_dict)
+    runObj.finalize()
+
+    i+=1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_filtIon'.format(i))
+    runObj.filtIon(pairs_same_starting_ranges_update + pairs_diff_starting_ranges_update)
+    runObj.finalize()
+
+    i+=1
+    runObj = run()
+    runObj.configure(inps, 'run_{:02d}_invertIon'.format(i))
+    runObj.invertIon()
+    runObj.finalize()
+
+    return i
 
 
 def checkCurrentStatus(inps):
@@ -742,7 +973,8 @@ def main(iargs=None):
         print('')
         print('Updating an existing stack ...')
         print('')
-        pairs = selectNeighborPairs(secondaryDates, inps.num_connections,updateStack)   # will be change later
+        dates4NewPairs = sorted(secondaryDates + [stackReferenceDate])[1:]
+        pairs = selectNeighborPairs(dates4NewPairs, inps.num_connections,updateStack)   # will be change later
     else:
         pairs = selectNeighborPairs(acquisitionDates, inps.num_connections,updateStack)
 
@@ -753,21 +985,28 @@ def main(iargs=None):
     print ('*****************************************')
     if inps.workflow == 'interferogram':
 
-        interferogramStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack)
+        i = interferogramStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack)
 
     elif inps.workflow == 'offset':
 
-        offsetStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack)
+        i = offsetStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack)
 
     elif inps.workflow == 'correlation':
 
-        correlationStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack)
+        i = correlationStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, pairs, updateStack)
 
     elif inps.workflow == 'slc':
 
-        slcStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, updateStack, mergeSLC=True)
+        i = slcStack(inps, acquisitionDates, stackReferenceDate, secondaryDates, safe_dict, updateStack, mergeSLC=True)
+
+
+    #do ionosphere estimation
+    if inps.param_ion is not None:
+        dateListIon, pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update, safe_dict = checkCurrentStatusIonosphere(inps)
+        i = ionosphereStack(inps, dateListIon, stackReferenceDate, pairs_same_starting_ranges_update, pairs_diff_starting_ranges_update, safe_dict, i)
+
 
 if __name__ == "__main__":
 
   # Main engine
-  main()
+  main(sys.argv[1:])

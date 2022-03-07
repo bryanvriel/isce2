@@ -1,8 +1,7 @@
 # Early exit if prereqs not available
 if(NOT TARGET GDAL::GDAL
-OR NOT TARGET Python::NumPy
-OR NOT TARGET CUDA::cublas
 OR NOT TARGET CUDA::cufft
+OR NOT pybind11_FOUND
    )
     return()
 endif()
@@ -10,11 +9,10 @@ endif()
 set(CMAKE_CUDA_STANDARD 11)
 set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
 
-cython_add_module(PyCuAmpcor
-    src/PyCuAmpcor.pyx
+pybind11_add_module(PyCuAmpcor
+    src/PyCuAmpcor.cpp
     src/GDALImage.cu
     src/SConscript
-    src/SlcImage.cu
     src/cuAmpcorChunk.cu
     src/cuAmpcorController.cu
     src/cuAmpcorParameter.cu
@@ -23,6 +21,8 @@ cython_add_module(PyCuAmpcor
     src/cuArraysPadding.cu
     src/cuCorrFrequency.cu
     src/cuCorrNormalization.cu
+    src/cuCorrNormalizationSAT.cu
+    src/cuCorrNormalizer.cu
     src/cuCorrTimeDomain.cu
     src/cuDeramp.cu
     src/cuEstimateStats.cu
@@ -35,9 +35,7 @@ target_include_directories(PyCuAmpcor PRIVATE
     )
 target_link_libraries(PyCuAmpcor PRIVATE
     CUDA::cufft
-    CUDA::cublas
     GDAL::GDAL
-    Python::NumPy
     )
 
 InstallSameDir(

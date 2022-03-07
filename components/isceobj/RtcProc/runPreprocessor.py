@@ -7,6 +7,7 @@ import logging
 import isceobj
 import copy
 import os
+import inspect
 logger = logging.getLogger('isce.grdsar.runPreprocessor')
 
 def runPreprocessor(self):
@@ -42,7 +43,7 @@ def runPreprocessor(self):
         frame.product.endingSlantRange = r0max
 
         try:
-            reference = extract_slc(frame, slantRange=(not slantRangeExtracted))
+            reference = extract_slc(frame, slantRange=(not slantRangeExtracted), removeNoise=self.apply_thermal_noise_correction)
             success=True
             if not slantRangeExtracted:
                 r0min = frame.product.startingSlantRange
@@ -72,10 +73,15 @@ def runPreprocessor(self):
     catalog.printToLog(logger, "runPreprocessor")
     self._grd.procDoc.addAllFromCatalog(catalog)
 
-def extract_slc(sensor, slantRange=False):
+def extract_slc(sensor, slantRange=False, removeNoise=False):
 #    sensor.configure()
     sensor.parse()
-    sensor.extractImage()
+    sensor_extractImage_spec = inspect.getfullargspec(sensor.extractImage)
+    if "removeNoise" in sensor_extractImage_spec.args or "removeNoise" in sensor_extractImage_spec.kwonlyargs:
+        sensor.extractImage(removeNoise=removeNoise)
+    else:
+        print('Noise removal requested, but sensor does not support noise removal.')
+        sensor.extractImage()
    
     if slantRange:
         sensor.extractSlantRange()

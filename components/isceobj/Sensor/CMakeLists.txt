@@ -1,16 +1,13 @@
 add_subdirectory(db)
 add_subdirectory(TOPS)
 add_subdirectory(MultiMode)
-
-add_library(asa_im_decode src/asa_im_decode/asa_im_decode.c)
-set_target_properties(asa_im_decode PROPERTIES
-    PREFIX ""
-    OUTPUT_NAME envisat
-    SUFFIX .so)
+add_subdirectory(GRD)
+isce2_add_cdll(asa_im_decode src/asa_im_decode/asa_im_decode.c)
 
 set(installfiles
     asa_im_decode
     alos
+    cosar
     __init__.py
     ALOS.py
     ALOS2.py
@@ -43,6 +40,7 @@ set(installfiles
     UAVSAR_Polsar.py
     UAVSAR_RPI.py
     UAVSAR_Stack.py
+    SAOCOM_SLC.py
     )
 
 if(HDF5_FOUND)
@@ -57,7 +55,6 @@ endif()
 
 Python_add_library(alos MODULE
     bindings/alosmodule.cpp
-    src/ALOS_pre_process/SConscript
     src/ALOS_pre_process/lib_functions.h
     src/ALOS_pre_process/read_ALOSE_data.c
     src/ALOS_pre_process/siocomplex.h
@@ -69,7 +66,7 @@ Python_add_library(alos MODULE
     src/ALOS_pre_process/data_ALOS.h
     src/ALOS_pre_process/data_ALOSE.h
     src/ALOS_pre_process/hermite_c.c
-    src/ALOS_pre_process/image_sio.h
+    src/ALOS_pre_process/image_sio.c
     src/ALOS_pre_process/init_from_PRM.c
     src/ALOS_pre_process/interpolate_ALOS_orbit.c
     src/ALOS_pre_process/null_sio_struct.c
@@ -88,11 +85,30 @@ Python_add_library(alos MODULE
     src/ALOS_pre_process/swap_ALOS_data_info.c
     src/ALOS_pre_process/write_ALOS_prm.c
     src/ALOS_pre_process/readOrbitPulse.f
+    src/ALOS_pre_process/get_sio_struct.c
+    src/ALOS_pre_process/lib_array.c
+    src/ALOS_pre_process/lib_cpx.c
+    src/ALOS_pre_process/lib_file.c
+    src/ALOS_pre_process/lib_func.c
+    src/ALOS_pre_process/put_sio_struct.c
+    src/ALOS_pre_process/resamp.h
+    src/ALOS_pre_process/resamp_azimuth.c
     )
 target_include_directories(alos PUBLIC
     include
     src/ALOS_pre_process
     )
-target_link_libraries(alos PUBLIC DataAccessor_static)
+target_link_libraries(alos PUBLIC isce2::DataAccessorLib)
+
+Python_add_library(cosar MODULE
+    bindings/cosarmodule.cpp
+    src/cosar/Header.cpp
+    src/cosar/Burst.cpp
+    src/cosar/Cosar.cpp
+    )
+target_include_directories(cosar PUBLIC
+    include
+    src/cosar
+    )
 
 InstallSameDir(${installfiles})

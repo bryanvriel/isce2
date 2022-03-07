@@ -21,6 +21,8 @@ def createParser():
             help='DEM to use for coregistration')
     parser.add_argument('-g', '--geom_referenceDir', type=str, dest='geom_referenceDir', default='geom_reference',
             help='Directory for geometry files of the reference')
+    parser.add_argument('-n', '--numProcess', type=int, dest='numProcess', default=1,
+            help='Number of parallel processes (default: %(default)s).')
 
     return parser
 
@@ -97,7 +99,9 @@ def main(iargs=None):
         for ind in range(reference.numberOfBursts):
             inputs.append((dirname, demImage, reference, ind))
 
-    pool = mp.Pool(mp.cpu_count())
+    # parallel processing
+    print('running in parallel with {} processes'.format(inps.numProcess))
+    pool = mp.Pool(inps.numProcess)
     results = pool.map(call_topo, inputs)
     pool.close()
 
@@ -106,7 +110,7 @@ def main(iargs=None):
 
     boxes = np.array(boxes)
     bbox = [np.min(boxes[:,0]), np.max(boxes[:,1]), np.min(boxes[:,2]), np.max(boxes[:,3])]
-    print ('bbox : ',bbox)
+    print('bbox : ', bbox)
     
 
 if __name__ == '__main__':

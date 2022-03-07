@@ -2,16 +2,17 @@
 
 #Author: Heresh Fattahi
 
+import os
+import argparse
+import glob
+import numpy as np
+from osgeo import gdal
 import isce
 import isceobj
-import numpy as np
-import argparse
-import os
 from isceobj.Sensor.TOPS import createTOPSSwathSLCProduct
 from mroipac.correlation.correlation import Correlation
 import s1a_isce_utils as ut
-import gdal
-import glob
+
 
 def createParser():
     parser = argparse.ArgumentParser( description='Extract valid overlap region for the stack')
@@ -38,6 +39,7 @@ def updateValidRegion(topReference, secondaryPath, swath):
     ####Load relevant products
         #topReference = ut.loadProduct(os.path.join(inps.reference , 'IW{0}.xml'.format(swath)))
 
+    print(secondaryPath)
     topCoreg = ut.loadProduct(os.path.join(secondaryPath , 'IW{0}.xml'.format(swath)))
 
     topIfg = ut.coregSwathSLCProduct()
@@ -66,6 +68,34 @@ def updateValidRegion(topReference, secondaryPath, swath):
 
     return topReference
 
+def dropSecondarysWithDifferentNumberOfBursts(secondaryList, reference, swathList):
+    '''Drop secondary acquisitions that have different number of bursts
+    than the reference acquisition.
+    '''
+    print('checking the number of bursts in coreg_secondarys against the one in reference')
+    secondaryList2Drop = []
+    for swath in swathList:
+        prodReference = ut.loadProduct(os.path.join(reference, 'IW{0}.xml'.format(swath)))
+        numBursts = len(prodReference.bursts)
+
+        for secondary in secondaryList:
+            prodSecondary = ut.loadProduct(os.path.join(secondary, 'IW{0}.xml'.format(swath)))
+            if len(prodSecondary.bursts) != numBursts:
+                msg = 'WARNING: {} has different number of bursts ({}) than the reference {} ({}) for swath {}'.format(
+                    os.path.basename(secondary), len(prodSecondary.bursts),
+                    os.path.basename(reference), numBursts, swath)
+                msg += ' --> exclude it for common region calculation'
+                print(msg)
+                secondaryList2Drop.append(secondary)
+
+    secondaryList2Drop = list(sorted(set(secondaryList2Drop)))
+    if len(secondaryList2Drop) == 0:
+        print('all secondary images have the same number of bursts as the reference')
+
+    secondaryList = list(sorted(set(secondaryList) - set(secondaryList2Drop)))
+
+    return secondaryList
+
 
 def main(iargs=None):
     '''extract common valid overlap region for the stack.
@@ -76,7 +106,7 @@ def main(iargs=None):
     if not os.path.exists(stackDir):
         print('creating ', stackDir)
         os.makedirs(stackDir)
-    else:
+    elif len(glob.glob(os.path.join(stackDir, '*.xml'))) > 0:
         print(stackDir , ' already exists.')
         print('Replacing reference with existing stack.')
         inps.reference = stackDir
@@ -87,6 +117,8 @@ def main(iargs=None):
     secondaryList = glob.glob(os.path.join(inps.secondary,'2*'))
     secondarySwathList = ut.getSwathList(secondaryList[0]) # assuming all secondarys have the same swaths
     swathList = list(sorted(set(referenceSwathList+secondarySwathList)))
+    # discard secondarys with different number of bursts than the reference
+    secondaryList = dropSecondarysWithDifferentNumberOfBursts(secondaryList, inps.reference, swathList)
 
     for swath in swathList:
         print('******************')
@@ -139,7 +171,7 @@ swath = ut.loadProduct(os.path.join(slcPath , 'IW{0}.xml'.format(2)))
 
 tref = swath.sensingStart
 rref = swath.bursts[0].startingRange
-dt = swath.bursts[0].azimuthTimeInterval 
+dt = swath.bursts[0].azimuthTimeInterval
 dr = swath.bursts[0].rangePixelSize
 
 

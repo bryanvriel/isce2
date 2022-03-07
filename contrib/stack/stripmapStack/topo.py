@@ -6,11 +6,15 @@ import shelve
 import datetime
 import shutil
 import numpy as np
-import gdal
+from osgeo import gdal
 import isce
 import isceobj
 from isceobj.Constants import SPEED_OF_LIGHT
 from isceobj.Util.Poly2D import Poly2D
+
+
+gdal.UseExceptions()
+
 
 
 def createParser():
@@ -416,12 +420,13 @@ def runMultilook(in_dir, out_dir, alks, rlks, in_ext='.rdr', out_ext='.rdr', met
                 options_str = '-of ENVI -a_nodata 0 -outsize {ox} {oy} -srcwin 0 0 {sx} {sy} '.format(
                     ox=out_wid, oy=out_len, sx=src_wid, sy=src_len)
                 gdal.Translate(out_file, ds, options=options_str)
+                dso = gdal.Open(out_file, gdal.GA_ReadOnly)
+                gdal.Translate(out_file+'.vrt', dso, options=gdal.TranslateOptions(format='VRT'))
 
                 # generate ISCE .xml file
                 if not os.path.isfile(out_file+'.xml'):
-                    cmd = 'gdal2isce_xml.py -i {}.vrt'.format(out_file)
-                    print(cmd)
-                    os.system(cmd)
+                    from isce.applications.gdal2isce_xml import gdal2isce_xml
+                    gdal2isce_xml(out_file+'.vrt')
 
             else:
                 raise ValueError('un-supported multilook method: {}'.format(method))

@@ -9,7 +9,7 @@
 
 #include <algorithm>
 #include <vector>
-#include <cmath>
+#include <math.h>
 #include <cstdio>
 #include "AkimaLib.h"
 #include "Constants.h"

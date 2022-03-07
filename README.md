@@ -23,7 +23,7 @@ its InSAR aspect ISCE supports data from many space-borne satellites and one
 air-borne platform.  We continue to increase the number of sensors supported.
 At this time the sensors that are supported are the following: ALOS, ALOS2,
 COSMO_SKYMED, ENVISAT, ERS, KOMPSAT5, RADARSAT1, RADARSAT2, RISAT1, Sentinel1,
-TERRASARX, and UAVSAR.
+TERRASARX, UAVSAR and SAOCOM1A.
 
 ## Contents
 
@@ -81,10 +81,9 @@ you want to try the unwrap 2 stage option:
 
 * RelaxIV (a minimum cost flow relaxation algorithm coded in C++ by
 Antonio Frangioni and Claudio Gentile at the University of Pisa,
-based on the Fortran code developed by by Dimitri Bertsekas while
-at MIT) available by request at http://www.di.unipi.it/~frangio.
-So that ISCE will compile it properly, the RelaxIV files should
-be placed in the directory: 'contrib/UnwrapComp/src/RelaxIV'.
+based on the Fortran code developed by Dimitri Bertsekas while
+at MIT) is available at https://github.com/frangio68/Min-Cost-Flow-Class.
+The RelaxIV files should be placed in the directory: 'contrib/UnwrapComp/src/RelaxIV' so that ISCE will compile it properly.
 
 * PULP: Use easy\_install or pip to install it or else clone it from,
 https://github.com/coin-or/pulp.  Make sure the path to the installed
@@ -258,18 +257,23 @@ code uses for importing isce.
 
 #### Install ISCE
 
+```bash
 cd isce
 scons install
+```
 
 For a verbose install run:
+
+```bash
 scons -Q install
+```
 
 The scons command also allows you to explicitly specify the name of the
 SConfigISCE file, which could be used to specify an alternative file for
 (say SConfigISCE\_NEW) which must still be  located in the same
 SCONS\_CONFIG\_DIR, run
 
-```
+```bash
 scons install --setupfile=SConfigISCE_NEW
 ```
 
@@ -289,14 +293,18 @@ run the following command while in the top directory of the ISCE source (the
 directory containing the SConstruct file):
 
 ```bash
-> rm -rf config.log .sconfig.dblite .sconf_temp
+> rm -rf config.log .sconfig.dblite .sconf_temp .sconsign.dblite
 ```
 
 and then try "scons install" again.
 
+The same also applies for rebuilding with SCons after updating the code, e.g.
+via a `git pull`. If you encounter issues after such a change, it's recommended
+to remove the cache files and build directory and do a fresh rebuild.
+
 ### CMake (experimental)
 Make sure you have the following prerequisites:
-* CMake ≥ 3.12
+* CMake ≥ 3.13
 * GCC ≥ 4.8  (with C++11 support)
 * Python ≥ 3.5
 * Cython
@@ -681,6 +689,7 @@ The inputs are Sentinel GRD zipfiles
         <property name="epsg id">32618</property>
         <property name="geocode spacing">100</property>
         <property name="geocode interpolation method">bilinear</property>
+        <property name="apply thermal noise correction">True</property>
         <component name="reference">
         <property name="safe">$dir$/rtcApp/data/S1A_IW_GRDH_1SDV_20181221T225104_20181221T225129_025130_02C664_B46C.zip</property>
         <property name="orbit directory">$dir$/orbits</property>
@@ -865,14 +874,7 @@ Filename: reference\_offset1.xml:
 
 ## User community forums
 
-Sign up to participate in the ISCE user communities at the following website:
+Read helpful information and participate in discussion with
+the user/developer community on GitHub Discussions:
 
-[http://earthdef.caltech.edu/account/register](http://earthdef.caltech.edu/account/register)
-
-
-After you sign up read helpful information and participate in discussion with
-the user/developer community at the following website:
-
-[http://earthdef.caltech.edu/projects/isce_forum/boards](http://earthdef.caltech.edu/projects/isce_forum/boards)
-
-
+https://github.com/isce-framework/isce2/discussions
