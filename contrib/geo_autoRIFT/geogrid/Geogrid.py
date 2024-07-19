@@ -107,10 +107,10 @@ class Geogrid(Component):
         ds = None
 #        pdb.set_trace()
 
-        if srs.IsGeographic():
-            epsgstr = srs.GetAuthorityCode('GEOGCS')
-        elif srs.IsProjected():
+        if srs.IsProjected():
             epsgstr = srs.GetAuthorityCode('PROJCS')
+        elif srs.IsGeographic():
+            raise Exception('Geographic coordinate system encountered')
         elif srs.IsLocal():
             raise Exception('Local coordinate system encountered')
         else:
@@ -310,6 +310,7 @@ class Geogrid(Component):
         geogrid.setWindowStableSurfaceMaskFilename_Py( self._geogrid, self.winssmname)
         geogrid.setRO2VXFilename_Py( self._geogrid, self.winro2vxname)
         geogrid.setRO2VYFilename_Py( self._geogrid, self.winro2vyname)
+        geogrid.setSFFilename_Py( self._geogrid, self.winsfname)
         geogrid.setLookSide_Py(self._geogrid, self.lookSide)
         geogrid.setNodataOut_Py(self._geogrid, self.nodata_out)
 
@@ -377,6 +378,7 @@ class Geogrid(Component):
         self.winssmname = None
         self.winro2vxname = None
         self.winro2vyname = None
+        self.winsfname = None
         
         ##dt-varying search range scale (srs) rountine parameters
         self.srs_dt_unity = 182

@@ -105,10 +105,10 @@ class GeogridOptical():
         ds = None
 #        pdb.set_trace()
 
-        if srs.IsGeographic():
-            epsgstr = srs.GetAuthorityCode('GEOGCS')
-        elif srs.IsProjected():
+        if srs.IsProjected():
             epsgstr = srs.GetAuthorityCode('PROJCS')
+        elif srs.IsGeographic():
+            raise Exception('Geographic coordinate system encountered')
         elif srs.IsLocal():
             raise Exception('Local coordinate system encountered')
         else:
@@ -245,6 +245,7 @@ class GeogridOptical():
         geogridOptical.setWindowStableSurfaceMaskFilename_Py( self._geogridOptical, self.winssmname)
         geogridOptical.setRO2VXFilename_Py( self._geogridOptical, self.winro2vxname)
         geogridOptical.setRO2VYFilename_Py( self._geogridOptical, self.winro2vyname)
+        geogridOptical.setSFFilename_Py( self._geogridOptical, self.winsfname)
         geogridOptical.setNodataOut_Py(self._geogridOptical, self.nodata_out)
         
     
@@ -380,6 +381,7 @@ class GeogridOptical():
         self.winssmname = None
         self.winro2vxname = None
         self.winro2vyname = None
+        self.winsfname = None
         
         ##dt-varying search range scale (srs) rountine parameters
         self.srs_dt_unity = 182
